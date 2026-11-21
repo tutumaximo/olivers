@@ -202,9 +202,11 @@ function apply(){
  $("buy").href="https://accon.ai/olivers-pizza-cabo-frio/delivery/item/"+id;
  if(mode=="cam")camPose();
 }
+let cz=1;
 function camPose(){
- cam.fov=60;cam.updateProjectionMatrix();cam.position.set(0,0,0);cam.rotation.set(0,0,0);
- const d=.55,a=.87;pizza.position.set(0,-d*Math.sin(a),-d*Math.cos(a));
+ cam.fov=65;cam.updateProjectionMatrix();cam.position.set(0,0,0);const a=.87;cam.rotation.set(-a,0,0);
+ const d=Math.max(.3,(1.36*size/100)/(1.7*Math.tan(.5672)*cam.aspect)*cz);
+ pizza.position.set(0,-d*Math.sin(a),-d*Math.cos(a));
 }
 function tip(t){const e=$("tip");e.textContent=t||"";e.style.display=t?"block":"none"}
 async function setMode(k){
@@ -215,7 +217,7 @@ async function setMode(k){
  if(k=="cam"){
   try{if(!navigator.mediaDevices)throw{name:"sem HTTPS"};stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
    $("v").srcObject=stream;$("v").style.display="block";await $("v").play();
-   tip("Aponte para a mesa. Pizza em escala real a ~55 cm da câmera.");}
+   tip("Aponte a câmera para a mesa. Use a pinça para aproximar ou afastar a pizza.");}
   catch(e){tip(window.self!==window.parent?"Câmera bloqueada aqui dentro. Abra este link direto no Safari.":"Câmera negada ("+(e.name||"erro")+"). Em Ajustes › Safari › Câmera, permita este site.");$("v").style.display="none"}
   document.body.style.background=stream?"transparent":"";camPose();
  }else{
@@ -323,11 +325,11 @@ $("lay").onclick=()=>{explode=explode?0:1;$("lay").textContent=explode?"Juntar":
 const P=new Map(),pdist=()=>{const a=[...P.values()];return Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])||1};let pd=1;
 $("c").onpointerdown=e=>{$("c").setPointerCapture(e.pointerId);P.set(e.pointerId,[e.clientX,e.clientY]);if(P.size==2)pd=pdist()};
 $("c").onpointermove=e=>{const p=P.get(e.pointerId);if(!p)return;const mx=e.clientX-p[0],my=e.clientY-p[1];p[0]=e.clientX;p[1]=e.clientY;
- if(P.size==2){const d=pdist();oz=Math.min(2.5,Math.max(.5,oz*pd/d));pd=d}
+ if(P.size==2){const d=pdist();if(mode=="cam"){cz=Math.min(2.5,Math.max(.4,cz*pd/d));camPose()}else oz=Math.min(2.5,Math.max(.5,oz*pd/d));pd=d}
  else if(mode=="3d"){oy-=mx*.008;op=Math.min(1.55,Math.max(.1,op+my*.006))}else pizza.rotation.y+=mx*.01};
 const up=e=>P.delete(e.pointerId);$("c").onpointerup=up;$("c").onpointercancel=up;
-$("c").onwheel=e=>{e.preventDefault();oz=Math.min(2.5,Math.max(.5,oz*(1+e.deltaY*.001)))};
-function resize(){renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}
+$("c").onwheel=e=>{e.preventDefault();if(mode=="cam"){cz=Math.min(2.5,Math.max(.4,cz*(1+e.deltaY*.001)));camPose()}else oz=Math.min(2.5,Math.max(.5,oz*(1+e.deltaY*.001)))};
+function resize(){renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();if(mode=="cam")camPose()}
 addEventListener("resize",resize);resize();
 renderer.setAnimationLoop((t,frame)=>{
  cur+=(tgt-cur)*.14;pizza.scale.setScalar(cur);ev+=(explode-ev)*.1;stackUpdate();placeDsc();
